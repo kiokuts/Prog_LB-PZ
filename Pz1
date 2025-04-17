@@ -28,7 +28,6 @@ for item in response_list:
 
 print("Ч. 2")
 
-# Формування списків
 exchange_date = []
 exchange_rate = []
 
