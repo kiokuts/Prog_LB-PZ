@@ -1,1 +1,18 @@
+#Working with text
+def word_count(text):
+    words = text.lower().split() 
+    count_dict = {}
+
+    for word in words:
+        count_dict[word] = count_dict.get(word, 0) + 1
+
+    frequent_words = [word for word, count in count_dict.items() if count > 3]
+
+    return count_dict, frequent_words
+
+text = input("Введіть рядок зі словами: ")
+result, frequent = word_count(text)
+
+print("Словник слів:", result)
+print("Слова, що зустрічаються більше 3 разів:", frequent)
 
