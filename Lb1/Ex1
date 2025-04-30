@@ -16,27 +16,3 @@ result, frequent = word_count(text)
 print("Словник слів:", result)
 print("Слова, що зустрічаються більше 3 разів:", frequent)
 
-#Inventory of products
-warehouse = {
-    "яблуко": 10,
-    "банан": 4,
-    "груша": 2,
-    "апельсин": 7
-}
-def update_product(name, amount):
-    if name in warehouse:
-        warehouse[name] += amount
-    else:
-        warehouse[name] = amount
-    if warehouse[name] < 0:
-        warehouse[name] = 0
-def get_low_stock(threshold=5):
-    return [product for product, count in warehouse.items() if count < threshold]
-
-def show_warehouse():
-    print("Склад після оновлення:", warehouse)
-    print("Продукти з кількістю менше 5:", get_low_stock())
-update_product("банан", -2)
-update_product("груша", 3)
-update_product("персик", 4)
-show_warehouse()
