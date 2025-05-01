@@ -1,0 +1,21 @@
+#Sales statistics 
+sales = [
+    {"продукт": "яблуко", "кількість": 50, "ціна": 10},
+    {"продукт": "банан", "кількість": 30, "ціна": 20},
+    {"продукт": "груша", "кількість": 100, "ціна": 15},
+    {"продукт": "яблуко", "кількість": 80, "ціна": 10}
+]
+
+def calculate_income(sales_list):
+    income = {}
+    for sale in sales_list:
+        product = sale["продукт"]
+        total = sale["кількість"] * sale["ціна"]
+        income[product] = income.get(product, 0) + total
+    return income
+
+result = calculate_income(sales)
+big_income = [product for product, total in result.items() if total > 1000]
+
+print("Загальний дохід по продуктах:", result)
+print("Продукти з доходом понад 1000:", big_income)
