@@ -1,0 +1,42 @@
+#Task management system
+tasks = {
+    "Здати звіт": "в процесі",
+    "Підготувати презентацію": "очікує",
+    "Відправити email": "виконано"
+}
+
+def add_task(name, status="очікує"):
+    if name in tasks:
+        print(f"Задача '{name}' вже існує.")
+    else:
+        tasks[name] = status
+        print(f"Задачу '{name}' додано зі статусом '{status}'.")
+
+def remove_task(name):
+    if name in tasks:
+        del tasks[name]
+        print(f"Задачу '{name}' видалено.")
+    else:
+        print(f"Задача '{name}' не знайдена.")
+
+def update_status(name, new_status):
+    if name in tasks:
+        tasks[name] = new_status
+        print(f"Статус задачі '{name}' оновлено на '{new_status}'.")
+    else:
+        print(f"Задача '{name}' не знайдена.")
+
+def get_pending_tasks():
+    return [task for task, status in tasks.items() if status == "очікує"]
+
+add_task("Пройти тестування")
+update_status("Здати звіт", "виконано")
+remove_task("Відправити email")
+
+print("\nУсі задачі:")
+for task, status in tasks.items():
+    print(f"- {task}: {status}")
+
+print("\nЗадачі зі статусом 'очікує':")
+for task in get_pending_tasks():
+    print(f"- {task}")
