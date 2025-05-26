@@ -1,0 +1,26 @@
+import hashlib
+
+users = {
+    "ivanov": (hashlib.md5("12345678".encode()).hexdigest(), "Іванов Іван Іванович"),
+    "feira": (hashlib.md5("timequeen".encode()).hexdigest(), "Огнєва Василина Нортівна"),
+    "shevtg": (hashlib.md5("zapovit".encode()).hexdigest(), "Шевченко Тарас Григорович")
+}
+
+
+def authenticate_user(login):
+    if login not in users:
+        print("Користувача не знайдено.")
+        return
+
+    password = input("Введіть пароль: ")
+    hashed_input = hashlib.md5(password.encode()).hexdigest()
+
+    stored_hash, full_name = users[login]
+    if hashed_input == stored_hash:
+        print(f"Аутентифікація успішна. Вітаємо, {full_name}!")
+    else:
+        print("Невірний пароль.")
+
+
+login_input = input("Введіть логін: ")
+authenticate_user(login_input)
