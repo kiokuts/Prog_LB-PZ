@@ -1,3 +1,4 @@
+#User authentication
 import hashlib
 
 users = {
