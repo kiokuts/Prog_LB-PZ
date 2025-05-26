@@ -1,42 +1,42 @@
-#доробити
-# 1. Отримати курси евро за попередній тиждень, вивести на екран дату + курс
-# 2. З отриманого словника побудувати графк зміни курсу за тиждень
 import json
 import requests
 import matplotlib.pyplot as plt
+from datetime import datetime
 
-print("Ч. 1")
-# URL requests https://bank.gov.ua/NBU_Exchange/exchange_site?start=20250324&end=20250329&valcode=eur&json
-response_data = requests.get(
-    "https://bank.gov.ua/NBU_Exchange/exchange_site?start=20250324&end=20250430&valcode=eur&json")
-print(response_data)
-print(response_data.content)
-print(response_data.apparent_encoding)
-print(response_data.text)
+# Отримуємо курси за період
+url = "https://bank.gov.ua/NBU_Exchange/exchange_site?start=20250317&end=20250321&valcode=eur&json"
+response = requests.get(url)
 
-# response_dictionary = json.loads(response_data.content)
-# print(response_dictionary)
+# Перевірка статусу відповіді
+if response.status_code != 200:
+    print("Помилка запиту:", response.status_code)
+    exit()
 
-response_list = json.loads(response_data.content)
+data = json.loads(response.content)
 
-'''
-for i in response_list:
-    print(i)
-'''
+# Створюємо списки для дат і курсів
+dates = []
+rates = []
 
-for item in response_list:
-    print(item['exchangedate'], item['rate'])
+# Обробка даних
+for item in data:
+    date = datetime.strptime(item["exchangedate"], "%d.%m.%Y")
+    rate = item["rate"]
+    print(f"{date.strftime('%d.%m.%Y')}: {rate}")
+    dates.append(date)
+    rates.append(rate)
 
-print("Ч. 2")
+# Сортування даних (на випадок порушеного порядку)
+sorted_data = sorted(zip(dates, rates))
+dates, rates = zip(*sorted_data)
 
-exchange_date = []
-exchange_rate = []
-
-for item in response_list:
-    exchange_date.append(item['exchangedate'])
-    exchange_rate.append(item['rate'])
-
-print(exchange_date)
-print(exchange_rate)
-plt.plot(exchange_date, exchange_rate)
+# Побудова графіка
+plt.figure(figsize=(10, 5))
+plt.plot(dates, rates, marker='o', linestyle='-', color='blue')
+plt.title("Курс євро за період 17–21 березня 2025")
+plt.xlabel("Дата")
+plt.ylabel("Курс EUR")
+plt.grid(True)
+plt.xticks(rotation=45)
+plt.tight_layout()
 plt.show()
