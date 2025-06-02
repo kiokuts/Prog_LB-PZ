@@ -1,0 +1,71 @@
+import hashlib
+from datetime import datetime
+
+
+class User:
+    def __init__(self, username, password, is_active=True):
+        self.username = username
+        self.password_hash = hashlib.sha256(password.encode()).hexdigest()
+        self.is_active = is_active
+
+    def verify_password(self, password):
+        return self.password_hash == hashlib.sha256(password.encode()).hexdigest()
+
+# Адміністратор
+class Administrator(User):
+    def __init__(self, username, password):
+        super().__init__(username, password)
+        self.permissions = ["manage_users", "view_logs"]
+
+# Звичайний користувач
+class RegularUser(User):
+    def __init__(self, username, password):
+        super().__init__(username, password)
+        self.last_login = None
+
+    def update_login(self):
+        self.last_login = datetime.now()
+
+# Гість
+class GuestUser(User):
+    def __init__(self, username):
+        super().__init__(username, "", is_active=False)
+
+# Клас контролю доступу
+class AccessControl:
+    def __init__(self):
+        self.users = {}
+
+    def add_user(self, user):
+        self.users[user.username] = user
+
+    def authenticate(self, username, password):
+        user = self.users.get(username)
+        if user and user.is_active and user.verify_password(password):
+            if isinstance(user, RegularUser):
+                user.update_login()
+            return user
+        return None
+
+ac = AccessControl()
+
+
+ac.add_user(Administrator("WalterWhite", "heisenberg"))
+ac.add_user(RegularUser("SherlockHolmes", "elementary"))
+ac.add_user(RegularUser("Eleven", "waffles"))
+ac.add_user(RegularUser("RickSanchez", "portalgun"))
+ac.add_user(GuestUser("JonSnow"))                             #
+
+tests = [
+    ("WalterWhite", "heisenberg"),
+    ("SherlockHolmes", "elementary"),
+    ("Eleven", "waffles"),
+    ("RickSanchez", "wrongpassword"),
+    ("JonSnow", ""),
+]
+
+print("=== Перевірка аутентифікації ===")
+for username, password in tests:
+    user = ac.authenticate(username, password)
+    result = f" {username} увійшов" if user else f" {username} - відмовлено"
+    print(result)
