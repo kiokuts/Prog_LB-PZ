@@ -1,0 +1,45 @@
+from collections import Counter
+
+def filter_ips(input_file_path, output_file_path, allowed_ips):
+    try:
+
+        with open(input_file_path, 'r') as infile:
+            lines = infile.readlines()
+
+        ip_counter = Counter()
+
+        for line in lines:
+            line = line.strip()
+            if line:
+                parts = line.split()
+                if parts:
+                    ip = parts[0]
+                    if ip in allowed_ips:
+                        ip_counter[ip] += 1
+
+        try:
+            with open(output_file_path, 'w') as outfile:
+                if ip_counter:
+                    print("Результат аналізу:")
+                    for ip, count in ip_counter.items():
+                        result_line = f"{ip} - {count}"
+                        print(result_line)
+                        outfile.write(f"{result_line}\n")
+                    print(f"\nРезультат записан у файл: {output_file_path}")
+                else:
+                    print("Дозволені IP-адреси не знайдено у файлі.")
+                    outfile.write("Дозволені IP-адреси не знайдено у файлі.\n")
+                    print(f"Повідомлення записано в файл: {output_file_path}")
+
+        except IOError:
+            print(f"Помилка: Не вдалося записати у файл {output_file_path}.")
+
+    # 5. Обработка исключений
+    except FileNotFoundError:
+        print(f"Помилка: Файл {input_file_path} не знайдено.")
+
+allowed_ips = ['192.168.9.1', '10.0.3.24', '172.16.8.19']
+input_file_path = r'C:\Users\Admin\Desktop\ВТОРОЙ КУРС\Програмування\apache_logs.txt'
+output_file_path = r'C:\Users\Admin\Desktop\ВТОРОЙ КУРС\Програмування\file_lb2_t2.txt'
+
+filter_ips(input_file_path, output_file_path, allowed_ips)
