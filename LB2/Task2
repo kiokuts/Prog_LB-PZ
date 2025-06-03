@@ -1,0 +1,25 @@
+import hashlib
+
+def generate_file_hashes(*file_paths):
+    file_hashes = {}
+
+    for PATH in file_paths:
+        try:
+            print(f"Обробка файлу: {PATH}")
+            with open(PATH, 'rb') as file:
+                content = file.read()
+                sha256_hash = hashlib.sha256(content).hexdigest()
+                file_hashes[PATH] = sha256_hash
+        except FileNotFoundError:
+            print(f" Файл не знайдено: {PATH}")
+        except IOError as e:
+            print(f" Помилка читання файлу {PATH}: {e}")
+
+    return file_hashes
+
+file_path = r"C:\Users\Admin\Desktop\ВТОРОЙ КУРС\Програмування\file_lb2_t2.txt"
+
+hashes = generate_file_hashes(file_path)
+
+for path, hash_value in hashes.items():
+    print(f"{path}:\n{hash_value}")
