@@ -1,1 +1,24 @@
+def analyze_log_file(path):
+    stats = {}
+
+    try:
+        with open(path, 'r') as log:
+            for entry in log:
+                parts = entry.split('"')
+                if len(parts) > 2:
+
+                    tail = parts[2].strip().split()
+                    if len(tail) >= 1 and tail[0].isdigit():
+                        code = tail[0]
+                        stats[code] = stats.get(code, 0) + 1
+
+    except FileNotFoundError:
+        print(f"[Помилка] Файл не знайдено: {path}")
+    except OSError as e:
+        print(f"[Помилка] Проблема з файлом: {e}")
+
+    return stats
+
+log_result = analyze_log_file(r"C:\Users\Admin\Desktop\ВТОРОЙ КУРС\Програмування\apache_logs.txt")
+print(log_result)
 
