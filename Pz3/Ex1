@@ -1,0 +1,232 @@
+import sqlite3
+import datetime
+
+sqlite3.register_adapter(datetime.datetime, lambda val: val.isoformat())
+sqlite3.register_converter("DATETIME", lambda val: datetime.datetime.fromisoformat(val.decode("utf-8")))
+
+DB_NAME = "security_events.db"
+
+def get_connection():
+    return sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES)
+
+def init_database():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("PRAGMA foreign_keys = ON")
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS EventSources (
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE,
+            location TEXT,
+            type TEXT) ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS EventTypes (
+            id INTEGER PRIMARY KEY,
+            type_name TEXT UNIQUE,
+            severity TEXT ) ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS SecurityEvents (
+            id INTEGER PRIMARY KEY,
+            timestamp DATETIME,
+            source_id INTEGER,
+            event_type_id INTEGER,
+            message TEXT,
+            ip_address TEXT,
+            username TEXT,
+            FOREIGN KEY (source_id) REFERENCES EventSources (id),
+            FOREIGN KEY (event_type_id) REFERENCES EventTypes (id) ) ''')
+
+    conn.commit()
+    conn.close()
+
+def populate_data():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    event_types = [
+        ("Login Success", "Informational"),
+        ("Login Failed", "Warning"),
+        ("Port Scan Detected", "Warning"),
+        ("Malware Alert", "Critical")
+    ]
+
+    for event_type in event_types:
+        cursor.execute("INSERT OR IGNORE INTO EventTypes (type_name, severity) VALUES (?, ?)", event_type)
+
+    sources = [
+        ("Firewall_A", "192.168.9.1", "Firewall"),
+        ("Web_Server_Logs", "192.168.9.10", "Web Server"),
+        ("IDS_Sensor_B", "192.168.9.5", "IDS")
+    ]
+
+    for source in sources:
+        cursor.execute("INSERT OR IGNORE INTO EventSources (name, location, type) VALUES (?, ?, ?)", source)
+
+    events = []
+    now = datetime.datetime.now()
+
+    for i in range(12):
+        timestamp = now - datetime.timedelta(hours=i * 2)
+
+        if i % 4 == 0:
+            events.append((timestamp, 1, 2, "Failed login attempt", "192.168.1.100", "admin"))
+        elif i % 4 == 1:
+            events.append((timestamp, 2, 1, "Successful login", "192.168.1.105", "user1"))
+        elif i % 4 == 2:
+            events.append((timestamp, 3, 3, "Port scan detected", "192.168.1.50", None))
+        else:
+            events.append((timestamp, 1, 4, "Malware detected", "192.168.1.110", "user2"))
+
+    cursor.executemany('''
+        INSERT INTO SecurityEvents (timestamp, source_id, event_type_id, message, ip_address, username)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', events)
+
+    conn.commit()
+    conn.close()
+
+def register_event_source(name, location, type_):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO EventSources (name, location, type) VALUES (?, ?, ?)",
+                   (name, location, type_))
+    conn.commit()
+    conn.close()
+
+def register_event_type(type_name, severity):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO EventTypes (type_name, severity) VALUES (?, ?)", (type_name, severity))
+    conn.commit()
+    conn.close()
+
+def log_security_event(source_name, event_type_name, message, ip_address=None, username=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM EventSources WHERE name = ?", (source_name,))
+    source_id = cursor.fetchone()[0]
+
+    cursor.execute("SELECT id FROM EventTypes WHERE type_name = ?", (event_type_name,))
+    event_type_id = cursor.fetchone()[0]
+
+    timestamp = datetime.datetime.now()
+    cursor.execute('''
+        INSERT INTO SecurityEvents (timestamp, source_id, event_type_id, message, ip_address, username)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (timestamp, source_id, event_type_id, message, ip_address, username))
+
+    conn.commit()
+    conn.close()
+
+def get_failed_logins_last_24h():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    last_24h = datetime.datetime.now() - datetime.timedelta(hours=24)
+
+    cursor.execute('''
+        SELECT se.timestamp, es.name, se.ip_address, se.username
+        FROM SecurityEvents se
+        JOIN EventSources es ON se.source_id = es.id
+        JOIN EventTypes et ON se.event_type_id = et.id
+        WHERE et.type_name = 'Login Failed' AND se.timestamp >= ?
+    ''', (last_24h,))
+
+    results = cursor.fetchall()
+
+    print(f"Login Failed events (24h): {len(results)}")
+    for row in results:
+        print(f"{row[0]} | {row[1]} | {row[2]} | {row[3]}")
+
+    conn.close()
+    return results
+
+def detect_brute_force():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    last_hour = datetime.datetime.now() - datetime.timedelta(hours=1)
+
+    cursor.execute('''
+        SELECT ip_address, COUNT(*) as attempts
+        FROM SecurityEvents se
+        JOIN EventTypes et ON se.event_type_id = et.id
+        WHERE et.type_name = 'Login Failed' AND se.timestamp >= ?
+        GROUP BY ip_address
+        HAVING COUNT(*) > 5
+    ''', (last_hour,))
+
+    results = cursor.fetchall()
+
+    print(f"Brute force IPs: {len(results)}")
+    for row in results:
+        print(f"{row[0]} - {row[1]} attempts")
+
+    conn.close()
+    return results
+
+def get_critical_events_last_week():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    last_week = datetime.datetime.now() - datetime.timedelta(days=7)
+
+    cursor.execute('''
+        SELECT es.name, COUNT(*) as count
+        FROM SecurityEvents se
+        JOIN EventSources es ON se.source_id = es.id
+        JOIN EventTypes et ON se.event_type_id = et.id
+        WHERE et.severity = 'Critical' AND se.timestamp >= ?
+        GROUP BY es.name
+    ''', (last_week,))
+
+    results = cursor.fetchall()
+
+    print(f"Critical events by source:")
+    for row in results:
+        print(f"{row[0]}: {row[1]}")
+
+    conn.close()
+    return results
+
+def search_events_by_keyword(keyword):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT se.timestamp, es.name, et.type_name, se.message
+        FROM SecurityEvents se
+        JOIN EventSources es ON se.source_id = es.id
+        JOIN EventTypes et ON se.event_type_id = et.id
+        WHERE se.message LIKE ?
+    ''', (f'%{keyword}%',))
+
+    results = cursor.fetchall()
+
+    print(f"Events with '{keyword}': {len(results)}")
+    for row in results:
+        print(f"{row[0]} | {row[1]} | {row[2]} | {row[3]}")
+
+    conn.close()
+    return results
+
+def main():
+    init_database()
+    populate_data()
+
+    register_event_source("New_Firewall", "192.168.9.99", "Firewall")
+    register_event_type("System Error", "Critical")
+    log_security_event("Firewall_A", "Login Failed", "Suspicious login", "192.168.1.45", "hacker")
+
+    get_failed_logins_last_24h()
+    detect_brute_force()
+    get_critical_events_last_week()
+    search_events_by_keyword("login")
+
+if __name__ == "__main__":
+    main()
