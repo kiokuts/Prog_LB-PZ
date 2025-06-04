@@ -1,0 +1,70 @@
+import sqlite3
+import hashlib
+
+conn = sqlite3.connect("users.db")
+cursor = conn.cursor()
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS users (
+    login TEXT PRIMARY KEY,
+    password TEXT NOT NULL,
+    full_name TEXT NOT NULL
+)
+''')
+conn.commit()
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def add_user(login, password, full_name):
+    hashed = hash_password(password)
+    try:
+        cursor.execute("INSERT INTO users (login, password, full_name) VALUES (?, ?, ?)",
+                       (login, hashed, full_name))
+        conn.commit()
+        print("Користувача додано успішно.")
+    except sqlite3.IntegrityError:
+        print("Користувач із таким логіном вже існує.")
+
+def update_password(login, new_password):
+    hashed = hash_password(new_password)
+    cursor.execute("UPDATE users SET password = ? WHERE login = ?", (hashed, login))
+    if cursor.rowcount == 0:
+        print("Користувача не знайдено.")
+    else:
+        conn.commit()
+        print("Пароль оновлено.")
+
+def authenticate(login, password):
+    hashed = hash_password(password)
+    cursor.execute("SELECT * FROM users WHERE login = ? AND password = ?", (login, hashed))
+    user = cursor.fetchone()
+    if user:
+        print("Успішна автентифікація.")
+        return True
+    else:
+        print("Невірний логін або пароль.")
+        return False
+
+if __name__ == "__main__":
+    while True:
+        print("\n1. Додати користувача\n2. Оновити пароль\n3. Увійти\n4. Вийти")
+        choice = input("Ваш вибір: ")
+
+        if choice == "1":
+            login = input("Логін: ")
+            password = input("Пароль: ")
+            full_name = input("ПІБ: ")
+            add_user(login, password, full_name)
+        elif choice == "2":
+            login = input("Логін: ")
+            new_password = input("Новий пароль: ")
+            update_password(login, new_password)
+        elif choice == "3":
+            login = input("Логін: ")
+            password = input("Пароль: ")
+            authenticate(login, password)
+        elif choice == "4":
+            break
+        else:
+            print("Невірний вибір. Спробуйте ще раз.")
